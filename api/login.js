@@ -1,0 +1,3 @@
+import crypto from 'node:crypto';import{sign,cookieOptions}from'./_auth.js';
+const same=(a='',b='')=>{const x=Buffer.from(String(a)),y=Buffer.from(String(b));return x.length===y.length&&crypto.timingSafeEqual(x,y)};
+export default function handler(req,res){if(req.method!=='POST')return res.status(405).end();const{username,password}=req.body||{};if(!process.env.APP_USER||!process.env.APP_PASSWORD||!process.env.SESSION_SECRET)return res.status(503).json({error:'Auth not configured'});if(!same(username,process.env.APP_USER)||!same(password,process.env.APP_PASSWORD))return res.status(401).json({error:'Invalid credentials'});res.setHeader('Set-Cookie',`mf_session=${sign()}; ${cookieOptions}`);return res.status(200).json({ok:true})}
