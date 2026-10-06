@@ -10,7 +10,8 @@ const nav=[['Visão geral',LayoutDashboard],['Lançamentos',ArrowLeftRight],['Co
 const icons={food:Utensils,wallet:WalletCards,car:Car,shop:ShoppingBag,health:HeartPulse};
 const money=(v,c='EUR')=>new Intl.NumberFormat(c==='EUR'?'pt-PT':'pt-BR',{style:'currency',currency:c}).format(Number(v)||0);
 const isoToday=()=>new Date().toISOString().slice(0,10);
-const dateLabel=d=>new Intl.DateTimeFormat('pt-PT',{day:'2-digit',month:'short',year:'numeric'}).format(new Date(`${d||isoToday()}T12:00:00`));
+const dateKey=d=>{if(!d)return isoToday();if(/^\d{4}-\d{2}-\d{2}$/.test(d))return d;let m=String(d).match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`:isoToday()};
+const dateLabel=d=>new Intl.DateTimeFormat('pt-PT',{day:'2-digit',month:'short',year:'numeric'}).format(new Date(`${dateKey(d)}T12:00:00`));
 const load=(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}};
 const eur=t=>t.currency==='BRL'?t.value/(t.rate||1):t.value;
 const uid=()=>Date.now()+Math.floor(Math.random()*100000);
@@ -23,7 +24,7 @@ function FinanceApp({onLogout}){
  const[period,setPeriod]=useState({mode:'all',from:'',to:''});
  const[tx,setTx]=useState(()=>load('mf-transactions-v3',[])),[accounts,setAccounts]=useState(()=>load('mf-accounts-v3',[])),[goals,setGoals]=useState(()=>load('mf-goals-v3',[])),[budgets,setBudgets]=useState(()=>load('mf-budgets-v3',[])),[categories,setCategories]=useState(()=>load('mf-categories-v1',defaultCategories));
  useEffect(()=>localStorage.setItem('mf-transactions-v3',JSON.stringify(tx)),[tx]);useEffect(()=>localStorage.setItem('mf-accounts-v3',JSON.stringify(accounts)),[accounts]);useEffect(()=>localStorage.setItem('mf-goals-v3',JSON.stringify(goals)),[goals]);useEffect(()=>localStorage.setItem('mf-budgets-v3',JSON.stringify(budgets)),[budgets]);useEffect(()=>localStorage.setItem('mf-categories-v1',JSON.stringify(categories)),[categories]);
- const dated=useMemo(()=>tx.filter(t=>{let d=t.date||isoToday(),now=new Date(),start;if(period.mode==='day')return d===period.from;if(period.mode==='month')return d.slice(0,7)===period.from;if(period.mode==='custom')return(!period.from||d>=period.from)&&(!period.to||d<=period.to);if(period.mode==='30'){start=new Date();start.setDate(now.getDate()-29);return d>=start.toISOString().slice(0,10)}return true}),[tx,period]);
+ const dated=useMemo(()=>tx.filter(t=>{let d=dateKey(t.date),now=new Date(),start;if(period.mode==='day')return d===period.from;if(period.mode==='month')return d.slice(0,7)===period.from;if(period.mode==='custom')return(!period.from||d>=period.from)&&(!period.to||d<=period.to);if(period.mode==='30'){start=new Date();start.setDate(now.getDate()-29);return d>=start.toISOString().slice(0,10)}return true}),[tx,period]);
  const filtered=dated.filter(t=>(t.name+' '+(t.description||'')+' '+t.cat).toLowerCase().includes(search.toLowerCase()));
  const income=filtered.filter(x=>x.type==='in').reduce((s,x)=>s+eur(x),0),expense=filtered.filter(x=>x.type==='out').reduce((s,x)=>s+eur(x),0);
  const open=(type,item=null)=>setModal({type,item});
